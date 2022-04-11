@@ -1,4 +1,4 @@
-#Thorium
+# productsManagementsGroup18
 
 ## Project - Products Management
 
