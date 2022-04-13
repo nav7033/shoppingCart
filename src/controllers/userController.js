@@ -1,17 +1,14 @@
 const userModel = require('../models/userModel')
 const ObjectId = require('mongoose').Types.ObjectId
 const { uploadFile } = require('../aws/awsS3')
+const {isValid} = require('../validator/valid')
 const bcrypt = require('bcrypt')
 const jwt = require("jsonwebtoken")
 
 
 
 
-const isValid = function (value) {
-    if (typeof value == 'undefined' || value === null) return false
-    if (typeof value == 'string' && value.trim().length === 0) return false
-    return true
-}
+
 
 //===========================Register User=================================
 const createUser = async function (req, res) {

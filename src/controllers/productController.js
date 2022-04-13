@@ -1,27 +1,9 @@
 const productModel = require('../models/productModel')
 const ObjectId = require('mongoose').Types.ObjectId
 const { uploadFile } = require('../aws/awsS3')
+const { isValid, validForEnum, isValidArray } = require('../validator/valid')
 
 
-
-const isValid = function (value) {
-    if (typeof value == 'undefined' || value === null) return false
-    if (typeof value == 'string' && value.trim().length === 0) return false
-    return true
-}
-
-const validForEnum = function (value) {
-    let enumValue = ["S", "XS", "M", "X", "L", "XXL", "XL"]
-    console.log(value)
-    value = JSON.parse(value)
-    console.log(value)
-    for (let x of value) {
-        if (enumValue.includes(x) == false) {
-            return false
-        }
-    }
-    return true;
-}
 //============== product Document=======================================
 
 const createProduct = async function (req, res) {
@@ -42,6 +24,9 @@ const createProduct = async function (req, res) {
         }
         if (!isValid(productData.currencyFormat)) {
             return res.status(400).send({ status: false, msg: "required currencyFormat" })
+        }
+        if (!isValidArray(JSON.parse(productData.availableSizes))) {
+            return res.status(400).send({ status: false, msg: "please enter availableSizes" })
         }
         if (!validForEnum(productData.availableSizes)) {
             return res.status(400).send({ status: false, msg: "please enter valid availableSizes" })
@@ -123,7 +108,7 @@ const updateProduct = async function (req, res) {
         if (Object.keys(updateData) == 0) {
             return res.status(400).send({ status: false, msg: "enter data to update" })
         }
-        let findTitle = await userModel.findOne({ title: updateData.title })
+        let findTitle = await productModel.findOne({ title: updateData.title })
         if (findTitle) {
             return res.status(400).send({ status: false, msg: "enter unique title" })
         }
@@ -143,24 +128,28 @@ const updateProduct = async function (req, res) {
             objectData.currencyFormat = updateData.currencyFormat
         }
         let file = req.files
-        let uploadFileUrl = await uploadFile(file[0])
-        if (isValid(uploadFileUrl)) {
+        if (file.length > 0) {
+            let uploadFileUrl = await uploadFile(file[0])
             objectData.productImage = uploadFileUrl
         }
-        if (!validForEnum(productData.availableSizes)) {
-            return res.status(400).send({ status: false, msg: "please enter valid availableSizes" })
-        }
-        if (isValid(updateData.availableSizes)) {
+        if(isValid(updateData.availableSizes)){
+            if (!isValidArray(JSON.parse(updateData.availableSizes))) {
+                return res.status(400).send({ status: false, msg: "please enter availableSizes" })
+            }
+            if (!validForEnum(updateData.availableSizes)) {
+                return res.status(400).send({ status: false, msg: "please enter valid availableSizes" })
+            }
             objectData.availableSizes = JSON.parse(updateData.availableSizes)
         }
+        
         if (isValid(updateData.installments)) {
             objectData.installments = updateData.installments
         }
-        const updateProduct = await productModel.findOneAndUpdate({ _id:productId },objectData, { new: true })
+        const updateProduct = await productModel.findOneAndUpdate({ _id: productId }, objectData, { new: true })
         if (!updateProduct) {
             return res.status(404).send({ status: false, msg: "product not found" })
         }
-        return res.status(200).send({ status: true, msg: "product data updated successfully", data:updateProduct })
+        return res.status(200).send({ status: true, msg: "product data updated successfully", data: updateProduct })
 
 
     }
@@ -168,8 +157,8 @@ const updateProduct = async function (req, res) {
         return res.status(500).send({ status: false, msg: err.message })
     }
 }
-const deleteProduct = async function(req,res){
-    try{
+const deleteProduct = async function (req, res) {
+    try {
         let productId = req.params.productId
         if (!ObjectId.isValid(productId)) {
             return res.status(400).send({ status: false, msg: "invalid productId" })
@@ -182,8 +171,8 @@ const deleteProduct = async function(req,res){
             return res.status(400).send({ status: false, msg: "This document already deleted" })
         }
         let data = { isDeleted: true, deletedAt: Date.now() }
-        const deleteData = await productModel.findOneAndUpdate({ _id: productId, isDeleted: false }, { $set: data }, { new: true }).select({__v:0})
-        return res.status(200).send({ status: true, msg: "delete data successfully", data:deleteData })
+        const deleteData = await productModel.findOneAndUpdate({ _id: productId, isDeleted: false }, { $set: data }, { new: true }).select({ __v: 0 })
+        return res.status(200).send({ status: true, msg: "delete data successfully", data: deleteData })
 
     }
     catch (err) {
