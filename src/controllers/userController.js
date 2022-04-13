@@ -1,43 +1,8 @@
 const userModel = require('../models/userModel')
 const ObjectId = require('mongoose').Types.ObjectId
-const aws = require('aws-sdk')
+const { uploadFile } = require('../aws/awsS3')
 const bcrypt = require('bcrypt')
 const jwt = require("jsonwebtoken")
-
-
-aws.config.update(
-    {
-        accessKeyId: "AKIAY3L35MCRVFM24Q7U",
-        secretAccessKey: "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",
-        region: "ap-south-1"
-    }
-)
-
-let uploadFile = async (file) => {
-    return new Promise(function (resolve, reject) {
-        //this function will upload file to aws and return the link
-        let s3 = new aws.S3({ apiVersion: "2006-03-01" }) //we will be using s3 service of aws
-
-        var uploadParams = {
-            ACL: "public-read",
-            Bucket: "classroom-training-bucket", // HERE
-            Key: "booksCover/" + file.originalname, // HERE 
-            Body: file.buffer
-        }
-
-        s3.upload(uploadParams, function (err, data) {
-            if (err) {
-                return reject({ "error": err })
-            }
-
-            console.log(data)
-            console.log(" file uploaded successfully ")
-            return resolve(data.Location) // HERE
-        }
-        )
-    }
-    )
-}
 
 
 
@@ -210,34 +175,89 @@ const getUserProfile = async function (req, res) {
 //===================================update user profile=================================
 const updateUserProfile = async function (req, res) {
     try {
-        let userId = req.params.userId
+        const userId = req.params.userId
         if (!isValid(userId)) {
             return res.status(400).send({ status: false, msg: "userId is required" })
         }
         if (!ObjectId.isValid(userId)) {
             return res.status(400).send({ status: false, msg: "userId is invalid" })
         }
-        let updateData = req.body
-        let address = JSON.parse(req.body.address)
-        if (Object.keys(updateData) == 0) {
+        let { fname, lname, email, phone, password, address } = req.body
+        const dataObject = {};
+        if (Object.keys(req.body) == 0) {
             return res.status(400).send({ status: false, msg: "enter data to update" })
         }
-        let findMail = await userModel.findOne({ email: updateData.email })
-        if (findMail) {
-            return res.status(400).send({ status: false, msg: "this email is already register" })
+        if (isValid(fname)) {
+            dataObject['fname'] = fname.trim()
         }
-        let findPhone = await userModel.findOne({ phone: updateData.phone })
-        if (findPhone) {
-            return res.status(400).send({ status: false, msg: "this mobile number is already register" })
+        if (isValid(lname)) {
+            dataObject['lname'] = lname.trim()
+        }
+        if (isValid(email)) {
+            let findMail = await userModel.findOne({ email: email })
+            if (findMail) {
+                return res.status(400).send({ status: false, msg: "this email is already register" })
+            }
+            dataObject['email'] = email.trim()
+        }
+        if (isValid(phone)) {
+            let findPhone = await userModel.findOne({ phone: phone })
+            if (findPhone) {
+                return res.status(400).send({ status: false, msg: "this mobile number is already register" })
+            }
+            dataObject['phone'] = phone.trim()
+        }
+        if (isValid(password)) {
+            if (!password.length >= 8 && password.length <= 15) {
+                return res.status(400).send({ status: false, msg: "password length should be 8 to 15" })
+            }
+            let saltRound = 10
+            const hash = await bcrypt.hash(password, saltRound)
+            dataObject['password'] = hash
         }
         let file = req.files
-        let saltRound = 10
-        const hash = await bcrypt.hash(updateData.password, saltRound)
-        let uploadFileUrl = await uploadFile(file[0])
-        updateData.password = hash
-        updateData.profileImage = uploadFileUrl
-        updateData.address = address
-        const updateProfile = await userModel.findOneAndUpdate({ _id: userId }, { $set: updateData }, { new: true })
+        if (file.length > 0) {
+            let uploadFileUrl = await uploadFile(file[0])
+            dataObject['profileImage'] = uploadFileUrl
+        }
+
+        if (address) {
+            address = JSON.parse(address)
+            if (address.shipping) {
+                if (address.shipping.street) {
+
+                    dataObject['address.shipping.street'] = address.shipping.street
+                }
+                if (address.shipping.city) {
+
+                    dataObject['address.shipping.city'] = address.shipping.city
+                }
+                if (address.shipping.pincode) {
+                    if (typeof address.shipping.pincode !== 'number') {
+                        return res.status(400).send({ status: false, message: 'please enter pinCode in digit' })
+                    }
+                    dataObject['address.shipping.pincode'] = address.shipping.pincode
+                }
+            }
+
+            if (address.billing) {
+                if (address.billing.street) {
+
+                    dataObject['address.billing.street'] = address.billing.street
+                }
+                if (address.billing.city) {
+
+                    dataObject['address.billing.city'] = address.billing.city
+                }
+                if (address.billing.pincode) {
+                    if (typeof address.billing.pincode !== 'number') {
+                        return res.status(400).send({ status: false, message: ' Please provide pincode in number' })
+                    }
+                    dataObject['address.billing.pincode'] = address.billing.pincode
+                }
+            }
+        }
+        const updateProfile = await userModel.findOneAndUpdate({ userId }, dataObject , { new: true })
         if (!updateProfile) {
             return res.status(404).send({ status: false, msg: "user profile not found" })
         }
