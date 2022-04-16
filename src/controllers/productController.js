@@ -19,11 +19,20 @@ const createProduct = async function (req, res) {
         if (!isValid(productData.price)) {
             return res.status(400).send({ status: false, msg: "required price" })
         }
+        if (!/^[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)$/.test(productData.price)) {
+            return res.status(400).send({ status: false, msg: "only digit allowed there" })
+        }
         if (!isValid(productData.currencyId)) {
             return res.status(400).send({ status: false, msg: "required currencyId" })
         }
+        if (productData.currencyId.trim() != 'INR' ) {
+            return res.status(400).send({ status: false, msg: "please enter indian currency Id  INR" })
+        }
         if (!isValid(productData.currencyFormat)) {
             return res.status(400).send({ status: false, msg: "required currencyFormat" })
+        }
+        if (productData.currencyFormat.trim() !=  '₹') {
+            return res.status(400).send({ status: false, msg: "please enter indian currency symbol ₹ " })
         }
         if (!isValidArray(JSON.parse(productData.availableSizes))) {
             return res.status(400).send({ status: false, msg: "please enter availableSizes" })
@@ -63,12 +72,69 @@ const getProducts = async function (req, res) {
             productData['data'] = productData
             return res.status(200).send({ status: true, msg: "success", data: productData })
         }
-        if (Object.keys(queryParam).includes('availableSizes')) {
-            let validCat = await bookModel.findOne({ availableSizes: queryData.availableSizes })
-            if (!validCat) {
-                return res.status(400).send({ status: false, msg: "thats size not available" })
+        let { size, name, priceGreaterThan, priceLessThan, priceSort } = queryData
+        let filters = { isDeleted: false }
+        if (isValid(size)) {
+            if (!isValidArray(JSON.parse(size))) {
+                return res.status(400).send({ status: false, msg: "please enter Sizes" })
+            }
+            if (!validForEnum(size)) {
+                return res.status(400).send({ status: false, msg: "please enter valid Sizes" })
+            }
+            filters["availableSizes"] = size
+        }
+        let arr = []
+
+        if (isValid(name)) {
+            const checkSubstring = await productModel.find({ isDeleted: false }).select({ title: 1, _id: 0 })
+            for (let i = 0; i < checkSubstring.length; i++) {
+                let checkTitle = checkSubstring[i].title
+                let check = checkTitle.includes(name)
+                console.log(checkTitle)
+                if (check) {
+                    arr.push(checkSubstring[i].title)
+                }
+
+            }
+            filters["title"] = arr
+
+        }
+        if (!(priceGreaterThan == null && priceLessThan != null)) {
+            filters['price'] = { $gt: priceGreaterThan }
+        }
+
+
+        if (!(priceGreaterThan != null && priceLessThan == null)) {
+            filters["price"] = { $lt: priceLessThan }
+
+
+        }
+        if (priceGreaterThan != null && priceLessThan != null) {
+            filters["price"] = { $gt: priceGreaterThan, $lt: priceLessThan }
+
+        }
+        if (isValid(priceSort)) {
+            if (priceSort == 1) {
+                const products = await productModel.find(filters).sort({ price: 1 })
+                if (products.length == 0) {
+                    return res.status(404).send({ status: false, msg: "No data found please try again" })
+                }
+                return res.status(200).send({ status: true, msg: "Results", count: products.length, data: products })
+            }
+            if (priceSort == -1) {
+                const products = await productModel.find(filters).sort({ price: -1 })
+                if (products.length == 0) {
+                    return res.status(404).send({ status: false, msg: "No data found please try again" })
+                }
+                return res.status(200).send({ status: true, msg: "Results", count: products.length, data: products })
             }
         }
+
+        const products = await productModel.find(filters)
+        if (products.length == 0) {
+            return res.status(404).send({ status: false, msg: "No such data found according to the filters" })
+        }
+        return res.status(200).send({ status: true, msg: "Results", count: products.length, data: products }) 
 
     }
     catch (err) {
@@ -76,6 +142,9 @@ const getProducts = async function (req, res) {
     }
 
 }
+
+
+
 const getProductsById = async function (req, res) {
     try {
         let productId = req.params.productId
@@ -98,10 +167,10 @@ const updateProduct = async function (req, res) {
     try {
         let productId = req.params.productId
         if (!isValid(productId)) {
-            return res.status(400).send({ status: false, msg: "userId is required" })
+            return res.status(400).send({ status: false, msg: "productId is required" })
         }
         if (!ObjectId.isValid(productId)) {
-            return res.status(400).send({ status: false, msg: "userId is invalid" })
+            return res.status(400).send({ status: false, msg: "productId is invalid" })
         }
         let updateData = req.body
         let objectData = {}
@@ -132,7 +201,7 @@ const updateProduct = async function (req, res) {
             let uploadFileUrl = await uploadFile(file[0])
             objectData.productImage = uploadFileUrl
         }
-        if(isValid(updateData.availableSizes)){
+        if (isValid(updateData.availableSizes)) {
             if (!isValidArray(JSON.parse(updateData.availableSizes))) {
                 return res.status(400).send({ status: false, msg: "please enter availableSizes" })
             }
@@ -141,7 +210,7 @@ const updateProduct = async function (req, res) {
             }
             objectData.availableSizes = JSON.parse(updateData.availableSizes)
         }
-        
+
         if (isValid(updateData.installments)) {
             objectData.installments = updateData.installments
         }

@@ -115,7 +115,7 @@ const logIn = async function (req, res) {
         if (!isValid(password)) {
             return res.status(400).send({ status: false, msg: "required password" })
         }
-        const validEmail = await userModel.findOne({ email: email.trim() })
+        const validEmail = await userModel.findOne({ email: email.trim()})
         if (!validEmail) {
             return res.status(400).send({ status: false, msg: "email is incorrect" })
         }
@@ -220,16 +220,16 @@ const updateUserProfile = async function (req, res) {
 
         if (address) {
             address = JSON.parse(address)
-            if (address.shipping) {
-                if (address.shipping.street) {
+            if (isValid(address.shipping)) {
+                if (isValid(address.shipping.street)) {
 
                     dataObject['address.shipping.street'] = address.shipping.street
                 }
-                if (address.shipping.city) {
+                if (isValid(address.shipping.city)) {
 
                     dataObject['address.shipping.city'] = address.shipping.city
                 }
-                if (address.shipping.pincode) {
+                if (isValid(address.shipping.pincode)) {
                     if (typeof address.shipping.pincode !== 'number') {
                         return res.status(400).send({ status: false, message: 'please enter pinCode in digit' })
                     }
@@ -237,16 +237,16 @@ const updateUserProfile = async function (req, res) {
                 }
             }
 
-            if (address.billing) {
-                if (address.billing.street) {
+            if (isValid(address.billing)) {
+                if (isValid(address.billing.street)) {
 
                     dataObject['address.billing.street'] = address.billing.street
                 }
-                if (address.billing.city) {
+                if (isValid(address.billing.city)) {
 
                     dataObject['address.billing.city'] = address.billing.city
                 }
-                if (address.billing.pincode) {
+                if (isValid(address.billing.pincode)) {
                     if (typeof address.billing.pincode !== 'number') {
                         return res.status(400).send({ status: false, message: ' Please provide pincode in number' })
                     }

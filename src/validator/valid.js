@@ -7,9 +7,7 @@ const isValid = function (value) {
 
 const validForEnum = function (value) {
     let enumValue = ["S", "XS", "M", "X", "L", "XXL", "XL"]
-    console.log(value)
     value = JSON.parse(value)
-    console.log(value)
     for (let x of value) {
         if (enumValue.includes(x) == false) {
             return false
