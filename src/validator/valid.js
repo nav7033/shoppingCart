@@ -15,6 +15,15 @@ const validForEnum = function (value) {
     }
     return true;
 }
+const Enum = function (value) {
+    let enumValue = ['pending','completed','cancelled']
+    for (let x of value) {
+        if (enumValue.includes(x) == false) {
+            return false
+        }
+    }
+    return true;
+}
 const isValidArray = function (object) {
     if (typeof (object) === "object") {
         object = object.filter(x => x.trim())
@@ -27,3 +36,4 @@ const isValidArray = function (object) {
 module.exports.isValid = isValid
 module.exports.validForEnum = validForEnum
 module.exports.isValidArray = isValidArray
+module.exports.Enum = Enum

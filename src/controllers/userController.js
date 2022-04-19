@@ -126,7 +126,7 @@ const logIn = async function (req, res) {
             return res.status(400).send({ status: false, msg: "enter valid password" })
         }
         let token = jwt.sign({ userId: userId.toString(), iat: Math.floor(Date.now() / 1000) + (60 * 30) }, "secret-key", { expiresIn: "30m" });
-        res.setHeader("x-api-key", token);
+        //res.setHeader("x-api-key", token);
         let result = { userId, token }
         return res.status(200).send({ status: true, data: result })
 

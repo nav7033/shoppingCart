@@ -25,13 +25,13 @@ const createProduct = async function (req, res) {
         if (!isValid(productData.currencyId)) {
             return res.status(400).send({ status: false, msg: "required currencyId" })
         }
-        if (productData.currencyId.trim() != 'INR' ) {
+        if (productData.currencyId.trim() != 'INR') {
             return res.status(400).send({ status: false, msg: "please enter indian currency Id  INR" })
         }
         if (!isValid(productData.currencyFormat)) {
             return res.status(400).send({ status: false, msg: "required currencyFormat" })
         }
-        if (productData.currencyFormat.trim() !=  '₹') {
+        if (productData.currencyFormat.trim() != '₹') {
             return res.status(400).send({ status: false, msg: "please enter indian currency symbol ₹ " })
         }
         if (!isValidArray(JSON.parse(productData.availableSizes))) {
@@ -90,21 +90,22 @@ const getProducts = async function (req, res) {
             for (let i = 0; i < checkSubstring.length; i++) {
                 let checkTitle = checkSubstring[i].title
                 let check = checkTitle.includes(name)
-                console.log(checkTitle)
                 if (check) {
                     arr.push(checkSubstring[i].title)
                 }
 
             }
-            filters["title"] = arr
 
         }
-        if (!(priceGreaterThan == null && priceLessThan != null)) {
+        for (let i = 0; i < arr.length; i++) {
+            filters.title = arr[i]
+        }
+        if (priceGreaterThan != null && priceLessThan == null) {
             filters['price'] = { $gt: priceGreaterThan }
         }
 
 
-        if (!(priceGreaterThan != null && priceLessThan == null)) {
+        if (priceGreaterThan == null && priceLessThan != null) {
             filters["price"] = { $lt: priceLessThan }
 
 
@@ -129,12 +130,14 @@ const getProducts = async function (req, res) {
                 return res.status(200).send({ status: true, msg: "Results", count: products.length, data: products })
             }
         }
+        console.log(filters)
 
-        const products = await productModel.find(filters)
-        if (products.length == 0) {
+        let productsRes = await productModel.find(filters)
+        console.log(productsRes)
+        if (productsRes.length == 0) {
             return res.status(404).send({ status: false, msg: "No such data found according to the filters" })
         }
-        return res.status(200).send({ status: true, msg: "Results", count: products.length, data: products }) 
+        return res.status(200).send({ status: true, msg: "Results", count: productsRes.length, data: productsRes })
 
     }
     catch (err) {
@@ -181,27 +184,51 @@ const updateProduct = async function (req, res) {
         if (findTitle) {
             return res.status(400).send({ status: false, msg: "enter unique title" })
         }
-        if (isValid(updateData.title)) {
+        if (updateData.title !=null) {
+            if(!isValid(updateData.title)){
+                return res.status(400).send({ status: false, msg: "please enter product name " }) 
+            }
             objectData.title = updateData.title
         }
-        if (isValid(updateData.description)) {
+        if (updateData.description != null) {
+            if(!isValid(updateData.description )){
+                return res.status(400).send({ status: false, msg: "required description " }) 
+            }
             objectData.description = updateData.description
         }
-        if (isValid(updateData.price)) {
+        if (updateData.price != null) {
+            if(!isValid(updateData.price )){
+                return res.status(400).send({ status: false, msg: "required price " }) 
+            }
             objectData.price = updateData.price
         }
-        if (isValid(updateData.currencyId)) {
+        if (updateData.currencyId != null) {
+            if(!isValid(updateData.currencyId )){
+                return res.status(400).send({ status: false, msg: "required currencyId " }) 
+            }
             objectData.currencyId = updateData.currencyId
         }
-        if (isValid(updateData.currencyFormat)) {
+        if (updateData.currencyFormat != null) {
+            if(!isValid(updateData.currencyId )){
+                return res.status(400).send({ status: false, msg: "required currencyId " }) 
+            }
             objectData.currencyFormat = updateData.currencyFormat
+        }
+        if(updateData.isFreeShipping !=null){
+            if(!isValid(updateData.isFreeShipping)){
+                return res.status(400).send({ status: false, msg: "required isFreeShipping" }) 
+            }
+            objectData.isFreeShipping = updateData.isFreeShipping
         }
         let file = req.files
         if (file.length > 0) {
             let uploadFileUrl = await uploadFile(file[0])
             objectData.productImage = uploadFileUrl
         }
-        if (isValid(updateData.availableSizes)) {
+        if (updateData.availableSizes!=null) {
+            if(!isValid(updateData.availableSizes)){
+                return res.status(400).send({ status: false, msg: "required availableSizes" }) 
+            }
             if (!isValidArray(JSON.parse(updateData.availableSizes))) {
                 return res.status(400).send({ status: false, msg: "please enter availableSizes" })
             }
@@ -211,7 +238,10 @@ const updateProduct = async function (req, res) {
             objectData.availableSizes = JSON.parse(updateData.availableSizes)
         }
 
-        if (isValid(updateData.installments)) {
+        if (updateData.installments != null) {
+            if(!isValid(updateData.availableSizes)){
+                return res.status(400).send({ status: false, msg: "required installments" }) 
+            }
             objectData.installments = updateData.installments
         }
         const updateProduct = await productModel.findOneAndUpdate({ _id: productId }, objectData, { new: true })
@@ -226,6 +256,8 @@ const updateProduct = async function (req, res) {
         return res.status(500).send({ status: false, msg: err.message })
     }
 }
+
+
 const deleteProduct = async function (req, res) {
     try {
         let productId = req.params.productId

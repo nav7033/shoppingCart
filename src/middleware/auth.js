@@ -4,10 +4,10 @@ const jwt = require('jsonwebtoken')
 
 const authentication = async function (req, res, next) {
     try {
-        let bearerHead = req.headers["x-api-key"];
+        let bearerHead = req.headers["authorization"];
 
         if (!bearerHead) {
-            return res.status(400).send({ status: false, msg: "token must be present" });
+            return res.status(400).send({ status: false, msg: "Bearer token must be present" });
         }
         const bearer = bearerHead.split(' ')
         const bearerToken = bearer[1]
@@ -30,7 +30,7 @@ const authentication = async function (req, res, next) {
 const authorize = async function (req, res, next){
     try{
         let userId = req.params.userId
-        const bearerHead = req.headers["x-api-key"];
+        let bearerHead = req.headers["authorization"];
         const bearer = bearerHead.split(' ')
         const bearerToken = bearer[1]
         const decodedToken = jwt.verify(bearerToken, "secret-key")

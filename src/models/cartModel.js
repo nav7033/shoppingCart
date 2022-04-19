@@ -11,6 +11,7 @@ const cartSchema = new mongoose.Schema({
         unique:true
     },
     items:[{
+        _id:false,
         productId:{
             type:objectId,
             required:[true,"required productId"],
