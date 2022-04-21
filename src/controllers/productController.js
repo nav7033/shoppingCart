@@ -146,7 +146,7 @@ const getProducts = async function (req, res) {
 
 }
 
-
+//======================================fetch product by productId================================================================================
 
 const getProductsById = async function (req, res) {
     try {
@@ -166,6 +166,7 @@ const getProductsById = async function (req, res) {
 
 }
 
+//============================================updateProduct=====================================================================================
 const updateProduct = async function (req, res) {
     try {
         let productId = req.params.productId
@@ -257,7 +258,7 @@ const updateProduct = async function (req, res) {
     }
 }
 
-
+//===========================================================deleteProduct=======================================================================
 const deleteProduct = async function (req, res) {
     try {
         let productId = req.params.productId
