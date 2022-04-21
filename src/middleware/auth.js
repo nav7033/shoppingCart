@@ -23,12 +23,12 @@ const authentication = async function (req, res, next) {
 
     }
     catch (err) {
-        
+
         return res.status(500).send({ status: false, msg: err.message })
     }
 }
-const authorize = async function (req, res, next){
-    try{
+const authorize = async function (req, res, next) {
+    try {
         let userId = req.params.userId
         let bearerHead = req.headers["authorization"];
         const bearer = bearerHead.split(' ')
@@ -43,7 +43,7 @@ const authorize = async function (req, res, next){
             return res.status(403).send({ status: false, msg: "you are not authorized to make change" })
         }
         next()
-     
+
 
     }
     catch (err) {

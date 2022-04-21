@@ -1,7 +1,7 @@
 const userModel = require('../models/userModel')
 const ObjectId = require('mongoose').Types.ObjectId
 const { uploadFile } = require('../aws/awsS3')
-const {isValid} = require('../validator/valid')
+const { isValid } = require('../validator/valid')
 const bcrypt = require('bcrypt')
 const jwt = require("jsonwebtoken")
 
@@ -50,8 +50,8 @@ const createUser = async function (req, res) {
         if (!(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[a-zA-Z0-9]{8,}$/.test(password))) {
             return res.status(400).send({ status: false, msg: "password should contain at least [1,.,a-zA]" })
         }
-        let pass = Object.keys(password.trim())
-        if (!pass.length >= 8 && pass.length <= 15) {
+
+        if (!(password.length >= 8 && password.length <= 15)) {
             return res.status(400).send({ status: false, msg: "password length should be 8 to 15" })
         }
 
@@ -78,20 +78,25 @@ const createUser = async function (req, res) {
             return res.status(400).send({ status: false, msg: "billing pinCode required" })
         }
         // s3 and cloud storage
-        let file = req.files
+
         let saltRound = 10
         const hash = await bcrypt.hash(password, saltRound)
-
-        let uploadFileUrl = await uploadFile(file[0])
-        let result = {
-            fname,
-            lname,
-            email,
-            profileImage: uploadFileUrl,
-            phone,
-            password: hash,
-            address
+        let result = {}
+        let file = req.files
+        if (file.length > 0) {
+            let uploadFileUrl = await uploadFile(file[0])
+            result.profileImage = uploadFileUrl
         }
+        if (!isValid(result.profileImage)) {
+            return res.status(400).send({ status: false, msg: "required profileImage" })
+        }
+        result.fname = fname
+        result.lname = lname
+        result.email = email
+        result.phone = phone
+        result.password = hash
+        result.address = address
+
 
         let data = await userModel.create(result)
         return res.status(201).send({ status: true, msg: "Register successfully", data: data })
@@ -115,7 +120,7 @@ const logIn = async function (req, res) {
         if (!isValid(password)) {
             return res.status(400).send({ status: false, msg: "required password" })
         }
-        const validEmail = await userModel.findOne({ email: email.trim()})
+        const validEmail = await userModel.findOne({ email: email.trim() })
         if (!validEmail) {
             return res.status(400).send({ status: false, msg: "email is incorrect" })
         }
@@ -161,7 +166,7 @@ const getUserProfile = async function (req, res) {
             createdAt: findProfile.createdAt,
             updatedAt: findProfile.updatedAt
         }
-        return res.status(200).send({ status: true, msg: "User profile", data: result })
+        return res.status(200).send({ status: true, message: "Fetch user details is successful", data: result })
 
 
     }
@@ -254,11 +259,11 @@ const updateUserProfile = async function (req, res) {
                 }
             }
         }
-        const updateProfile = await userModel.findOneAndUpdate({ userId }, dataObject , { new: true })
+        const updateProfile = await userModel.findOneAndUpdate({ userId }, dataObject, { new: true })
         if (!updateProfile) {
             return res.status(404).send({ status: false, msg: "user profile not found" })
         }
-        return res.status(200).send({ status: true, msg: "User Profile updated", data: updateProfile })
+        return res.status(200).send({ status: true, message: "Update user profile is successful", data: updateProfile })
 
     }
     catch (err) {
